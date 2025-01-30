@@ -26,7 +26,7 @@ class Phone(Field):
         if len(phone_number) == 10 and phone_number.isdigit():
             super().__init__(phone_number)
         else:
-            raise ValueError("The phone number must contain only 10 digits.")
+            raise AddressBookValueError("The phone number must contain only 10 digits.")
 
 
 class Birthday(Field):
@@ -37,7 +37,7 @@ class Birthday(Field):
             # та перетворення рядка на об'єкт datetime
             super().__init__(datetime.strptime(value, "%d.%m.%Y").date())
         except ValueError:
-            raise ValueError("Invalid date format. Use DD.MM.YYYY")
+            raise AddressBookValueError("Invalid date format. Use DD.MM.YYYY")
 
 
 class Record:
@@ -70,7 +70,7 @@ class Record:
         if not old_phone is None:
             old_phone.value = Phone(new_number).value
         else:
-            raise ValueError(f"Phone number {old_number} not found!")
+            raise AddressBookValueError(f"Phone number {old_number} not found!")
 
 
     def find_phone(self, phone_number):
@@ -80,7 +80,11 @@ class Record:
 
 
     def __str__(self):
-        return f"Contact name: {self.name.value}, phones: {'; '.join(p.value for p in self.phones)}"
+        result = f"Contact name: {self.name.value}, phones: {'; '.join(p.value
+                                                                for p in self.phones)}"
+        if self.birthday:
+            result += f", birthday: {AddressBook.date_to_string(self.birthday.value)}"
+        return result
 
 
 class AddressBook(UserDict):
@@ -124,23 +128,26 @@ class AddressBook(UserDict):
         upcoming_birthdays = []
         today = date.today()
 
-        for user in self.data:
-            birthday_this_year = user.birthday.replace(year=today.year)
-            # Перевірка, чи не буде
-            # припадати день народження вже наступного року.
-            if birthday_this_year < today:
-                birthday_this_year = user.birthday.replace(year=today.year+1)
+        for name in self.data:
+            if self.data[name].birthday:
+                birthday_this_year = \
+                    self.data[name].birthday.value.replace(year=today.year)
+                # Перевірка, чи не буде
+                # припадати день народження вже наступного року.
+                if birthday_this_year < today:
+                    birthday_this_year = \
+                        self.data[name].birthday.value.replace(year=today.year+1)
 
-            if 0 <= (birthday_this_year - today).days <= days:
-                # Перенесення дати привітання на наступний робочий день,
-                # якщо день народження припадає на вихідний.
-                birthday_this_year = AddressBook.adjust_for_weekend(birthday_this_year)
+                if 0 <= (birthday_this_year - today).days <= days:
+                    # Перенесення дати привітання на наступний робочий день,
+                    # якщо день народження припадає на вихідний.
+                    birthday_this_year = AddressBook.adjust_for_weekend(birthday_this_year)
 
-                congratulation_date_str = AddressBook.date_to_string(birthday_this_year)
-                upcoming_birthdays.append({
-                    "name": user["name"],   
-                    "congratulation_date": congratulation_date_str
-                    })
+                    congratulation_date_str = AddressBook.date_to_string(birthday_this_year)
+                    upcoming_birthdays.append({
+                        "name": self.data[name].name.value,   
+                        "congratulation_date": congratulation_date_str
+                        })
         return upcoming_birthdays
 
 
@@ -156,3 +163,8 @@ class AddressBook(UserDict):
 
     def __str__(self):
         return f"{'\n'.join(self.data[k].__str__() for k in self.data)}"
+
+
+class AddressBookValueError(ValueError):
+    '''Клас винятку для адресної книги'''
+    pass
