@@ -85,7 +85,7 @@ def add_birthday(args, book: AddressBook):
 def show_birthday(args, book: AddressBook):
     '''Функція повертає дату народження для вказаного контакту'''
     if book[args[0]].birthday:
-        return AddressBook.date_to_string(book[args[0]].birthday.value)
+        return book[args[0]].birthday.value
     else:
         return f"Birthday for contact with name {args[0]} not found!"
 

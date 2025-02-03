@@ -35,7 +35,8 @@ class Birthday(Field):
         try:
             # Перевірка коректності даних
             # та перетворення рядка на об'єкт datetime
-            super().__init__(datetime.strptime(value, "%d.%m.%Y").date())
+            if AddressBook.string_to_date(value):
+                super().__init__(value)
         except ValueError:
             raise AddressBookValueError("Invalid date format. Use DD.MM.YYYY")
 
@@ -83,7 +84,7 @@ class Record:
         result = f"Contact name: {self.name.value}, phones: {'; '.join(p.value
                                                                 for p in self.phones)}"
         if self.birthday:
-            result += f", birthday: {AddressBook.date_to_string(self.birthday.value)}"
+            result += f", birthday: {self.birthday.value}"
         return result
 
 
@@ -94,10 +95,11 @@ class AddressBook(UserDict):
         if self.find(record.name.value) is None:
             self.data[record.name.value] = record
 
+
     @staticmethod
-    def date_to_string(birthday):
-        '''Метод повертає результат перетворення дати в рядок DD.MM.YYYY'''
-        return birthday.strftime("%d.%m.%Y")
+    def string_to_date(date_string):
+        '''Метод перетворює рядок з датою в об'єкт datetime'''
+        return datetime.strptime(date_string, "%d.%m.%Y").date()
 
 
     @staticmethod
@@ -131,19 +133,21 @@ class AddressBook(UserDict):
         for name in self.data:
             if self.data[name].birthday:
                 birthday_this_year = \
-                    self.data[name].birthday.value.replace(year=today.year)
+                    AddressBook.string_to_date(
+                        self.data[name].birthday.value).replace(year=today.year)
                 # Перевірка, чи не буде
                 # припадати день народження вже наступного року.
                 if birthday_this_year < today:
                     birthday_this_year = \
-                        self.data[name].birthday.value.replace(year=today.year+1)
+                        AddressBook.string_to_date(
+                            self.data[name].birthday.value).replace(year=today.year+1)
 
                 if 0 <= (birthday_this_year - today).days <= days:
                     # Перенесення дати привітання на наступний робочий день,
                     # якщо день народження припадає на вихідний.
                     birthday_this_year = AddressBook.adjust_for_weekend(birthday_this_year)
 
-                    congratulation_date_str = AddressBook.date_to_string(birthday_this_year)
+                    congratulation_date_str = birthday_this_year.strftime("%d.%m.%Y")
                     upcoming_birthdays.append({
                         "name": self.data[name].name.value,   
                         "congratulation_date": congratulation_date_str
