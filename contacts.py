@@ -35,10 +35,10 @@ class Birthday(Field):
         try:
             # Перевірка коректності даних
             # та перетворення рядка на об'єкт datetime
-            if AddressBook.string_to_date(value):
-                super().__init__(value)
+            datetime.strptime(value, "%d.%m.%Y")
         except ValueError:
             raise AddressBookValueError("Invalid date format. Use DD.MM.YYYY")
+        super().__init__(value)
 
 
 class Record:
